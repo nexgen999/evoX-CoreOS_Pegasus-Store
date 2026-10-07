@@ -1,0 +1,66 @@
+name: Build and Deploy evoX Pegasus Store to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Automatisation toutes les 6 heures pour actualiser les catalogues et RAWG.io
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      enrich_rawg:
+        description: 'Enrichir avec RAWG.io ?'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Installation des dépendances
+        run: npm ci || npm install
+
+      - name: 🔄 Normalisation des catalogues et enrichissement RAWG.io
+        env:
+          RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
+        run: |
+          node scripts/build-catalog.js
+
+      - name: 🏗️ Compilation statique du Store (Vite)
+        run: npm run build
+
+      - name: 📤 Configuration de GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📁 Téléversement de l'artefact Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: 🚀 Déploiement sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
