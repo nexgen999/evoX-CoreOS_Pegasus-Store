@@ -46,6 +46,28 @@ export const DEFAULT_CATALOG_SOURCES: CatalogSourceConfig[] = [
     isGameCatalog: true,
   },
   {
+    id: 'zer0',
+    name: 'zer0 Catalog',
+    iconName: 'Boxes',
+    urls: [
+      'https://pegasus-catalog.fly.dev/catalogs/zer0.json'
+    ],
+    description: 'Base zer0 optimisée pour un chargement direct sans latence.',
+    enabled: true,
+    isGameCatalog: true,
+  },
+  {
+    id: 'blackbox-v2',
+    name: 'blackbox-v2 Catalog',
+    iconName: 'Boxes',
+    urls: [
+      'https://github.com/D3ATHLY/blackbox/blob/main/catalog/catalogue-v2.json'
+    ],
+    description: 'Base blackbox-v2 optimisée pour un chargement direct sans latence.',
+    enabled: true,
+    isGameCatalog: true,
+  },
+  {
     id: 'evox',
     name: 'evoX-CoreOS APPS',
     iconName: 'Rocket',
