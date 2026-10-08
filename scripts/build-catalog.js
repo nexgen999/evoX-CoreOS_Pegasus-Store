@@ -50,22 +50,6 @@ const SOURCES = [
     ]
   },
   {
-    id: 'blackbox v2',
-    name: 'BlackBox Catalog v2',
-    isGameCatalog: true,
-    urls: [
-      'https://github.com/D3ATHLY/blackbox/blob/main/catalog/catalogue-v2.json'
-    ]
-  },
-  {
-    id: 'zer0',
-    name: 'zer0 Catalog',
-    isGameCatalog: true,
-    urls: [
-      'https://pegasus-catalog.fly.dev/catalogs/zer0.json'
-    ]
-  },
-  {
     id: 'evox',
     name: 'evoX-CoreOS APPS',
     isGameCatalog: false,
