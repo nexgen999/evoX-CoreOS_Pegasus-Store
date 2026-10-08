@@ -355,18 +355,97 @@ async function main() {
 
   console.log(`\nTotal titres normalisés : ${allGames.length}`);
 
+  // Charger le cache existant pour ne PAS rescrapper ce qui est déjà enrichi
+  const existingDbPath = path.resolve(__dirname, '../public/catalog_database.json');
+  const diskCachePath = path.resolve(__dirname, '../.rawg_cache.json');
+  const memoryCache = new Map();
+
+  function populateCacheFromList(list) {
+    if (!Array.isArray(list)) return;
+    for (const item of list) {
+      if (item && item.enrichedAt) {
+        if (item.titleId && item.titleId !== 'N/A') {
+          memoryCache.set('ID:' + item.titleId.toUpperCase(), item);
+        }
+        if (item.normalizedTitle) {
+          memoryCache.set('TITLE:' + item.normalizedTitle.toLowerCase().trim(), item);
+        }
+        if (item.title) {
+          memoryCache.set('TITLE:' + item.title.toLowerCase().trim(), item);
+        }
+      }
+    }
+  }
+
+  if (fs.existsSync(existingDbPath)) {
+    try {
+      const existingDb = JSON.parse(fs.readFileSync(existingDbPath, 'utf-8'));
+      populateCacheFromList(existingDb);
+    } catch {}
+  }
+  if (fs.existsSync(diskCachePath)) {
+    try {
+      const diskCache = JSON.parse(fs.readFileSync(diskCachePath, 'utf-8'));
+      populateCacheFromList(diskCache);
+    } catch {}
+  }
+
+  if (memoryCache.size > 0) {
+    console.log(`⚡ Cache détecté : ${memoryCache.size} fiches déjà enrichies prêtes à être réutilisées instantanément.`);
+  }
+
   if (RAWG_API_KEY && allGames.length > 0) {
     const gameItems = allGames.filter(g => g.catalogSource !== 'homebrew' && g.catalogSource !== 'evox' && g.category !== 'Homebrew');
-    console.log(`\nDébut de l'enrichissement RAWG.io pour les ${gameItems.length} jeux (Homebrew exclus)...`);
+    console.log(`\nTraitement des ${gameItems.length} jeux (Homebrew exclus)...`);
     
-    let count = 0;
+    let reusedCount = 0;
+    let newlyEnrichedCount = 0;
+
     for (let i = 0; i < allGames.length; i++) {
       const g = allGames[i];
       if (g.catalogSource === 'homebrew' || g.catalogSource === 'evox' || g.category === 'Homebrew') {
         continue;
       }
 
-      process.stdout.write(`\rEnrichissement : [${count + 1}/${gameItems.length}] ${g.title.slice(0, 30)}...`);
+      // 1. Vérifier si le jeu a déjà été enrichi dans le cache
+      const cached = (g.titleId && g.titleId !== 'N/A' && memoryCache.get('ID:' + g.titleId.toUpperCase()))
+        || memoryCache.get('TITLE:' + (g.normalizedTitle || g.title).toLowerCase().trim());
+
+      if (cached && cached.enrichedAt) {
+        // Réutilisation instantanée sans appel réseau ! (0 ms)
+        allGames[i] = {
+          ...g,
+          rawgId: cached.rawgId,
+          rawgSlug: cached.rawgSlug,
+          releaseDate: cached.releaseDate || g.releaseDate,
+          rating: cached.rating,
+          metacritic: cached.metacritic,
+          metacriticUrl: cached.metacriticUrl,
+          banner: cached.banner || g.banner,
+          icon: g.icon && !g.icon.includes('placeholder') && !g.icon.includes('unsplash')
+            ? g.icon
+            : (cached.banner || cached.icon || g.icon),
+          genres: cached.genres && cached.genres.length > 0 ? cached.genres : g.genres,
+          developers: cached.developers,
+          publishers: cached.publishers,
+          esrb: cached.esrb,
+          playtime: cached.playtime,
+          website: cached.website,
+          redditUrl: cached.redditUrl,
+          tags: cached.tags,
+          screenshots: cached.screenshots,
+          description: cached.description || g.description,
+          enrichedAt: cached.enrichedAt
+        };
+        reusedCount++;
+        continue;
+      }
+
+      // 2. Si le jeu est nouveau : appel à RAWG.io
+      newlyEnrichedCount++;
+      const gameShortTitle = (g.title || 'Inconnu').slice(0, 35);
+      console.log(`  [+${newlyEnrichedCount}] RAWG Scraping (${i + 1}/${allGames.length}) : "${gameShortTitle}"...`);
+      
       const enriched = await enrichWithRawg(g, RAWG_API_KEY);
       if (enriched) {
         allGames[i] = {
@@ -375,13 +454,34 @@ async function main() {
           genres: enriched.genres && enriched.genres.length > 0 ? enriched.genres : g.genres,
           description: enriched.description || g.description
         };
-        count++;
+      } else {
+        // Marquer comme traité pour éviter de réinterroger RAWG à chaque run
+        allGames[i].enrichedAt = new Date().toISOString();
       }
+
+      // Ajouter au cache mémoire
+      if (g.titleId && g.titleId !== 'N/A') memoryCache.set('ID:' + g.titleId.toUpperCase(), allGames[i]);
+      memoryCache.set('TITLE:' + (g.normalizedTitle || g.title).toLowerCase().trim(), allGames[i]);
+
+      // Sauvegarde progressive du cache sur disque tous les 20 nouveaux jeux (sécurité)
+      if (newlyEnrichedCount % 20 === 0) {
+        try {
+          const cacheData = Array.from(memoryCache.values());
+          fs.writeFileSync(diskCachePath, JSON.stringify(cacheData, null, 2), 'utf-8');
+        } catch {}
+      }
+
       // Pause de 220ms pour respecter la limite de taux de RAWG.io
       await new Promise(r => setTimeout(r, 220));
     }
-    console.log(`\n✓ Enrichissement terminé : ${count} jeux enrichis via RAWG.io`);
+    console.log(`\n✓ Résumé : ${reusedCount} jeux réutilisés du cache (instantané 0ms), ${newlyEnrichedCount} nouveaux jeux enrichis.`);
   }
+
+  // Sauvegarde finale du cache disque persistant
+  try {
+    const cacheData = Array.from(memoryCache.values());
+    fs.writeFileSync(diskCachePath, JSON.stringify(cacheData, null, 2), 'utf-8');
+  } catch {}
 
   // Écriture du fichier final
   const outputDir = path.resolve(__dirname, '../public');

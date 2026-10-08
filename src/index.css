@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #050811;
+    --bg-surface: #0a1120;
+    --bg-surface-elevated: #111c33;
+    --border-subtle: #192742;
+    --brand-crimson: #ff0055;
+    --brand-cyan: #00d9ff;
+    --brand-blue: #0070d1;
+    --text-primary: #eaf1fa;
+    --text-secondary: #7e94b8;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    background-image: 
+      radial-gradient(circle at 50% -15%, rgba(255, 0, 85, 0.16) 0%, transparent 55%),
+      radial-gradient(circle at 5% 50%, rgba(0, 217, 255, 0.06) 0%, transparent 40%),
+      radial-gradient(circle at 95% 70%, rgba(0, 112, 209, 0.05) 0%, transparent 45%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #060a14;
+}
+::-webkit-scrollbar-thumb {
+  background: #1b2c4d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #28406f;
+}
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Gamepad / Keyboard Focus Indicator */
+:focus-visible {
+  outline: 2px solid #ff0055 !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 20px rgba(255, 0, 85, 0.5) !important;
+}
+
+/* Ambient glow effect */
+.glow-crimson {
+  box-shadow: 0 0 35px -5px rgba(255, 0, 85, 0.35);
+}
+.glow-cyan {
+  box-shadow: 0 0 30px -5px rgba(0, 217, 255, 0.3);
+}
