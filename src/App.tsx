@@ -73,29 +73,47 @@ export default function App() {
 
   // Load catalog database reliably without wiping enriched data
   const loadCatalogs = useCallback(async () => {
-    // 1. Check if user already enriched and saved data locally in this browser
+    // 1. Fetch the pre-compiled / workflow-generated catalog_database.json
+    // Support GitHub Pages subpath (import.meta.env.BASE_URL) and relative path
+    const candidateUrls = [
+      './catalog_database.json',
+      `${import.meta.env.BASE_URL || '/'}catalog_database.json`.replace('//', '/'),
+      '/catalog_database.json'
+    ];
+
+    for (const url of candidateUrls) {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('text/html')) {
+            // Received index.html fallback from SPA routing instead of JSON
+            continue;
+          }
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setGames(data);
+            try {
+              saveEnrichedDatabaseLocally(data);
+            } catch {
+              // localStorage quota exceeded is non-fatal
+            }
+            return;
+          }
+        }
+      } catch {
+        // try next candidate url
+      }
+    }
+
+    // 2. Fallback to localStorage if offline
     const locallyEnriched = getLocalEnrichedDatabase();
     if (locallyEnriched && locallyEnriched.length > 0) {
       setGames(locallyEnriched);
       return;
     }
 
-    // 2. Fetch the pre-compiled / workflow-generated catalog_database.json
-    try {
-      const res = await fetch('/catalog_database.json', { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setGames(data);
-          saveEnrichedDatabaseLocally(data);
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    // 3. Fallback to pre-seeded games
+    // 3. Fallback to sample games
     setGames(INITIAL_SAMPLE_GAMES);
   }, []);
 
