@@ -43,6 +43,16 @@ jobs:
       - name: 📦 Installation des dépendances
         run: npm install --legacy-peer-deps
 
+      - name: ⚡ Restaurer le cache RAWG et catalogues
+        uses: actions/cache@v4
+        with:
+          path: |
+            .rawg_cache.json
+            public/catalog_database.json
+          key: rawg-cache-${{ github.run_id }}
+          restore-keys: |
+            rawg-cache-
+
       - name: 🔄 Normalisation des catalogues et enrichissement RAWG.io
         env:
           RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
