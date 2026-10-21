@@ -149,6 +149,7 @@ export default function App() {
         setDetailMode={setDetailMode}
         onSelectCatalog={handleBrowseCatalog}
         onOpenSearch={() => setIsSearchOpen(true)}
+        catalogConfigs={catalogConfigs}
       />
 
       {/* Main Content Area centered with breathing room matching Photo 2 */}
