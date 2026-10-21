@@ -37,6 +37,7 @@ export const DiscoverView: React.FC<DiscoverViewProps> = ({
     switch (id) {
       case 'blackbox': return <Box className="w-4 h-4 text-[#ff0055]" />;
       case 'pippo': return <Gamepad2 className="w-4 h-4 text-[#ff0055]" />;
+      case 'zer0': return <Boxes className="w-4 h-4 text-[#00d9ff]" />;
       case 'dlps': return <Layers className="w-4 h-4 text-[#ff0055]" />;
       case 'pfs': return <Boxes className="w-4 h-4 text-[#ff0055]" />;
       case 'evox': return <Rocket className="w-4 h-4 text-[#ff0055]" />;

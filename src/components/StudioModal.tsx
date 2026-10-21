@@ -131,10 +131,14 @@ export const StudioModal: React.FC<StudioModalProps> = ({
   };
 
   const handleFetchRemoteUrl = async () => {
-    if (!remoteUrl.trim()) return;
+    let target = remoteUrl.trim();
+    if (!target) return;
+    if (target.includes('github.com/') && target.includes('/blob/')) {
+      target = target.replace('github.com/', 'raw.githubusercontent.com/').replace('/blob/', '/');
+    }
     setConvertStatus('Téléchargement en cours...');
     try {
-      const res = await fetch(remoteUrl.trim());
+      const res = await fetch(target);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const contentStr = JSON.stringify(data, null, 2);
@@ -162,11 +166,15 @@ export const StudioModal: React.FC<StudioModalProps> = ({
 
   const handleAddNewCatalogSource = () => {
     if (!newSourceName.trim() || !newSourceUrl.trim()) return;
+    let url = newSourceUrl.trim();
+    if (url.includes('github.com/') && url.includes('/blob/')) {
+      url = url.replace('github.com/', 'raw.githubusercontent.com/').replace('/blob/', '/');
+    }
     const newConfig: CatalogSourceConfig = {
       id: 'custom-' + Date.now(),
       name: newSourceName.trim(),
       iconName: 'Globe',
-      urls: [newSourceUrl.trim()],
+      urls: [url],
       enabled: true,
       isCustom: true,
       isGameCatalog: true,
@@ -313,7 +321,7 @@ export const StudioModal: React.FC<StudioModalProps> = ({
 
             {/* Notice Homebrew */}
             <div className="bg-[#050811] border border-[#1b2a44] rounded-xl p-3 text-[11px] text-[#7990b5]">
-              🛡️ <b>Filtrage de sécurité :</b> Seuls les catalogues de jeux (<i>BlackBox, Pippo, PFS, DLPS</i>) sont scannés. Les applications et catalogues Homebrew (<i>evoX APPS, Homebrew Store</i>) sont automatiquement ignorés pour préserver vos requêtes RAWG.
+              🛡️ <b>Filtrage de sécurité :</b> Seuls les catalogues de jeux (<i>BlackBox, Pippo, zer0, PFS, DLPS</i>) sont scannés. Les applications et catalogues Homebrew (<i>evoX APPS, Prospero Store</i>) sont automatiquement ignorés pour préserver vos requêtes RAWG.
             </div>
 
             {/* Batch Enrichment Control */}
