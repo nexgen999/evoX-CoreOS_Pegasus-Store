@@ -22,7 +22,7 @@ const SOURCES = [
     name: 'BlackBox Catalog',
     isGameCatalog: true,
     urls: [
-      'https://raw.githubusercontent.com/BlackBoxPS5/blackbox/main/catalog/catalog.json'
+      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/blackbox_catalog.json'
     ]
   },
   {
@@ -62,7 +62,7 @@ const SOURCES = [
     name: 'Homebrew Store',
     isGameCatalog: false,
     urls: [
-      'https://homebrew.page/catalog/v1.json'
+      'https://prosperostore.net/catalog/v1.json'
     ]
   }
 ];
