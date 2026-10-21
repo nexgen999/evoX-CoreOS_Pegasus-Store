@@ -6,7 +6,8 @@ export const DEFAULT_CATALOG_SOURCES: CatalogSourceConfig[] = [
     name: 'BlackBox Catalog',
     iconName: 'Box',
     urls: [
-      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/blackbox_catalog.json'
+      'https://nexgen999.github.io/evoX-CoreOS/json/pegasus-dl/blackbox_catalog.json',
+      'https://raw.githubusercontent.com/nexgen999/evoX-CoreOS/main/json/pegasus-dl/blackbox_catalog.json'
     ],
     description: 'Catalogue PS5 BlackBox officiel avec jaquettes et métadonnées complètes.',
     enabled: true,
@@ -50,7 +51,8 @@ export const DEFAULT_CATALOG_SOURCES: CatalogSourceConfig[] = [
     name: 'zer0 Catalog',
     iconName: 'Boxes',
     urls: [
-      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/zer0.json'
+      'https://nexgen999.github.io/evoX-CoreOS/json/pegasus-dl/zer0.json',
+      'https://raw.githubusercontent.com/nexgen999/evoX-CoreOS/main/json/pegasus-dl/zer0.json'
     ],
     description: 'Base zer0 optimisée pour un chargement direct sans latence.',
     enabled: true,
@@ -69,12 +71,12 @@ export const DEFAULT_CATALOG_SOURCES: CatalogSourceConfig[] = [
   },
   {
     id: 'homebrew',
-    name: 'Homebrew Store',
+    name: 'Prospero Store',
     iconName: 'Code2',
     urls: [
       'https://prosperostore.net/catalog/v1.json'
     ],
-    description: 'Boutique universelle Homebrew PS4/PS5 de la communauté.',
+    description: 'Boutique universelle Prospero Store / Homebrew PS4/PS5 de la communauté.',
     enabled: true,
     isGameCatalog: false,
   },
@@ -287,7 +289,7 @@ export const INITIAL_SAMPLE_GAMES: NormalizedGame[] = [
     normalizedTitle: 'Apollo Save Tool',
     category: 'Homebrew',
     catalogSource: 'homebrew',
-    catalogSourceName: 'Homebrew Store',
+    catalogSourceName: 'Prospero Store',
     version: 'v2.0.1',
     size: '34 MB',
     sizeBytes: 35651584,
