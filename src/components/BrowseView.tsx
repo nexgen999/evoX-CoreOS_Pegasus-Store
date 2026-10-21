@@ -9,7 +9,9 @@ import {
   TableProperties, 
   X, 
   RotateCcw,
-  Heart
+  Heart,
+  ChevronDown,
+  Box
 } from 'lucide-react';
 import { CatalogSourceConfig, NormalizedGame, ViewMode } from '../types/catalog';
 import { GameCard } from './GameCard';
@@ -40,19 +42,34 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
   const [sortBy, setSortBy] = useState<string>('date-desc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-  // Extract all unique genres
-  const availableGenres = useMemo(() => {
-    const set = new Set<string>();
+  // Extract all unique genres & platform counts
+  const genreOptions = useMemo(() => {
+    const counts = new Map<string, number>();
     games.forEach(g => {
+      if (g.category && g.category !== 'N/A') {
+        counts.set(g.category, (counts.get(g.category) || 0) + 1);
+      }
       if (Array.isArray(g.genres)) {
         g.genres.forEach(gen => {
           if (gen && gen.trim().length > 0 && gen !== 'N/A') {
-            set.add(gen.trim());
+            const clean = gen.trim();
+            if (clean.toLowerCase() !== g.category?.toLowerCase()) {
+              counts.set(clean, (counts.get(clean) || 0) + 1);
+            }
           }
         });
       }
     });
-    return Array.from(set).slice(0, 16);
+
+    const priority = ['PS5', 'PS4', 'Homebrew'];
+    return Array.from(counts.entries()).sort((a, b) => {
+      const pA = priority.indexOf(a[0]);
+      const pB = priority.indexOf(b[0]);
+      if (pA !== -1 && pB !== -1) return pA - pB;
+      if (pA !== -1) return -1;
+      if (pB !== -1) return 1;
+      return a[0].localeCompare(b[0]);
+    });
   }, [games]);
 
   // Filtered & Sorted games
@@ -66,13 +83,14 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
       if (selectedCatalog !== 'all' && g.catalogSource !== selectedCatalog) {
         return false;
       }
-      // Platform / Category match
-      if (selectedCategory !== 'all' && g.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-        return false;
-      }
-      // Genre match
-      if (selectedGenre !== 'all' && !g.genres?.some(gen => gen.toLowerCase() === selectedGenre.toLowerCase())) {
-        return false;
+      // Platform / Category or Genre match
+      if (selectedGenre !== 'all') {
+        const query = selectedGenre.toLowerCase();
+        const matchCategory = g.category && g.category.toLowerCase() === query;
+        const matchGenre = g.genres && g.genres.some(ge => ge.toLowerCase() === query);
+        if (!matchCategory && !matchGenre) {
+          return false;
+        }
       }
       // Search term
       if (searchTerm.trim()) {
@@ -116,7 +134,7 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
     });
 
     return result;
-  }, [games, selectedCatalog, selectedCategory, selectedGenre, searchTerm, sortBy, onlyFavorites, favorites]);
+  }, [games, selectedCatalog, selectedGenre, searchTerm, sortBy, onlyFavorites, favorites]);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -130,11 +148,11 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Search & Top Controls */}
-      <div className="bg-[#080d1a] border border-[#1b2a44] rounded-2xl p-4 sm:p-5 shadow-lg space-y-4">
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+      <div className="bg-[#080d1a] border border-[#1b2a44] rounded-2xl p-3.5 sm:p-4 shadow-lg">
+        <div className="flex flex-col xl:flex-row gap-3 items-stretch xl:items-center justify-between">
           
           {/* Main Search Bar */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-[220px]">
             <Search className="w-4 h-4 text-[#7990b5] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -146,33 +164,93 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7990b5] hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7990b5] hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-56">
-              <ArrowUpDown className="w-3.5 h-3.5 text-[#7990b5] absolute left-3 top-1/2 -translate-y-1/2" />
+          {/* Controls: Source Dropdown -> Genre Dropdown -> Sort Dropdown -> Favorites -> View Modes */}
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+            
+            {/* 1. Menu Déroulant Source */}
+            <div className="relative flex-1 sm:flex-initial sm:w-48">
+              <Box className="w-3.5 h-3.5 text-[#ff0055] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedCatalog}
+                onChange={(e) => { setSelectedCatalog(e.target.value); setOnlyFavorites(false); }}
+                className="w-full bg-[#050811] border border-[#1b2a44] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-[#ff0055] cursor-pointer appearance-none truncate"
+                title="Filtrer par catalogue source"
+              >
+                <option value="all">Source : Tous ({games.length})</option>
+                {catalogConfigs.map((cfg) => {
+                  const count = games.filter(g => g.catalogSource === cfg.id).length;
+                  return (
+                    <option key={cfg.id} value={cfg.id}>
+                      {cfg.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-[#7990b5] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* 2. Menu Déroulant Genre */}
+            <div className="relative flex-1 sm:flex-initial sm:w-44">
+              <Filter className="w-3.5 h-3.5 text-[#00d9ff] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+                className="w-full bg-[#050811] border border-[#1b2a44] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-[#ff0055] cursor-pointer appearance-none truncate"
+                title="Filtrer par genre ou plateforme"
+              >
+                <option value="all">Genre : Tous</option>
+                {genreOptions.map(([genreName, count]) => (
+                  <option key={genreName} value={genreName}>
+                    {genreName} ({count})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-[#7990b5] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* 3. Menu Déroulant Trier */}
+            <div className="relative flex-1 sm:flex-initial sm:w-44">
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#7990b5] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-[#050811] border border-[#1b2a44] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-[#ff0055] cursor-pointer appearance-none"
+                className="w-full bg-[#050811] border border-[#1b2a44] rounded-xl pl-9 pr-8 py-2.5 text-xs font-semibold text-white focus:outline-none focus:border-[#ff0055] cursor-pointer appearance-none truncate"
+                title="Trier la liste"
               >
-                <option value="date-desc">Trier : Date de sortie</option>
-                <option value="rating-desc">Trier : Note RAWG / Metacritic</option>
-                <option value="title-asc">Trier : Titre (A à Z)</option>
-                <option value="title-desc">Trier : Titre (Z à A)</option>
-                <option value="size-desc">Trier : Taille (Décroissante)</option>
-                <option value="size-asc">Trier : Taille (Croissante)</option>
+                <option value="date-desc">Trier : Date</option>
+                <option value="rating-desc">Trier : Note RAWG</option>
+                <option value="title-asc">Trier : A à Z</option>
+                <option value="title-desc">Trier : Z à A</option>
+                <option value="size-desc">Trier : Taille ↓</option>
+                <option value="size-asc">Trier : Taille ↑</option>
               </select>
+              <ChevronDown className="w-3.5 h-3.5 text-[#7990b5] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-[#050811] border border-[#1b2a44] p-1 rounded-xl">
+            {/* 4. Bouton Favoris Rapide */}
+            {favorites.length > 0 && (
+              <button
+                onClick={() => setOnlyFavorites(!onlyFavorites)}
+                className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                  onlyFavorites
+                    ? 'bg-[#ff0055] text-white border-[#ff0055] shadow-sm'
+                    : 'bg-[#050811] text-[#8ba2c4] hover:text-[#ff0055] border-[#1b2a44]'
+                }`}
+                title={onlyFavorites ? 'Afficher tous les jeux' : `Afficher les favoris (${favorites.length})`}
+              >
+                <Heart className={`w-4 h-4 ${onlyFavorites ? 'fill-white text-white' : ''}`} />
+              </button>
+            )}
+
+            {/* 5. View Mode Toggle */}
+            <div className="flex items-center bg-[#050811] border border-[#1b2a44] p-1 rounded-xl flex-shrink-0">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
@@ -213,100 +291,31 @@ export const BrowseView: React.FC<BrowseViewProps> = ({
           </div>
 
         </div>
-
-        {/* Catalog Selector Pills & Favorites */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar pt-2 border-t border-[#1b2a44]/50">
-          <span className="text-[11px] font-bold text-[#7990b5] uppercase tracking-wider mr-1 flex items-center gap-1">
-            <Filter className="w-3 h-3 text-[#ff0055]" />
-            Source :
-          </span>
-
-          <button
-            onClick={() => { setSelectedCatalog('all'); setOnlyFavorites(false); }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              selectedCatalog === 'all' && !onlyFavorites
-                ? 'bg-[#ff0055] text-white shadow-sm'
-                : 'bg-[#050811] text-[#8ba2c4] hover:text-white border border-[#1b2a44]'
-            }`}
-          >
-            Tous les catalogues ({games.length})
-          </button>
-
-          {/* Favorites quick toggle */}
-          {favorites.length > 0 && (
-            <button
-              onClick={() => setOnlyFavorites(!onlyFavorites)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                onlyFavorites
-                  ? 'bg-[#ff0055] text-white shadow-sm'
-                  : 'bg-[#050811] text-[#8ba2c4] hover:text-white border border-[#1b2a44]'
-              }`}
-            >
-              <Heart className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-white' : 'text-[#ff0055]'}`} />
-              Favoris ({favorites.length})
-            </button>
-          )}
-
-          {catalogConfigs.map((cfg) => {
-            const count = games.filter(g => g.catalogSource === cfg.id).length;
-            if (count === 0) return null;
-            return (
-              <button
-                key={cfg.id}
-                onClick={() => { setSelectedCatalog(cfg.id); setOnlyFavorites(false); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  selectedCatalog === cfg.id && !onlyFavorites
-                    ? 'bg-[#ff0055] text-white shadow-sm'
-                    : 'bg-[#050811] text-[#8ba2c4] hover:text-white border border-[#1b2a44]'
-                }`}
-              >
-                {cfg.name} ({count})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Genre & Platform Quick Filter Buttons */}
-        {availableGenres.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-            <span className="text-[11px] font-bold text-[#7990b5] uppercase tracking-wider mr-1">
-              Genre :
-            </span>
-            <button
-              onClick={() => setSelectedGenre('all')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                selectedGenre === 'all'
-                  ? 'bg-white/10 text-white border border-white/20'
-                  : 'text-[#7990b5] hover:text-white'
-              }`}
-            >
-              Tous
-            </button>
-            {availableGenres.map((genre) => (
-              <button
-                key={genre}
-                onClick={() => setSelectedGenre(genre)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                  selectedGenre === genre
-                    ? 'bg-[#00d9ff]/20 text-[#00d9ff] border border-[#00d9ff]/40 font-bold'
-                    : 'text-[#7990b5] hover:text-white'
-                }`}
-              >
-                {genre}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Header Info & Reset */}
-      <div className="flex items-center justify-between text-xs font-semibold text-[#7990b5] px-1">
-        <div>
-          Affichage de <b className="text-white font-bold">{filteredGames.length}</b> titres
-          {selectedCatalog !== 'all' && ` dans ${catalogConfigs.find(c => c.id === selectedCatalog)?.name || selectedCatalog}`}
-          {onlyFavorites && ` (Favoris)`}
+      <div className="flex items-center justify-between text-xs font-semibold text-[#7990b5] px-1 flex-wrap gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span>
+            Affichage de <b className="text-white font-bold">{filteredGames.length}</b> titres
+          </span>
+          {selectedCatalog !== 'all' && (
+            <span className="bg-[#ff0055]/15 border border-[#ff0055]/30 text-[#ff0055] px-2 py-0.5 rounded-md text-[11px] font-bold">
+              {catalogConfigs.find(c => c.id === selectedCatalog)?.name || selectedCatalog}
+            </span>
+          )}
+          {selectedGenre !== 'all' && (
+            <span className="bg-[#00d9ff]/15 border border-[#00d9ff]/30 text-[#00d9ff] px-2 py-0.5 rounded-md text-[11px] font-bold">
+              {selectedGenre}
+            </span>
+          )}
+          {onlyFavorites && (
+            <span className="bg-[#ff0055]/20 border border-[#ff0055]/40 text-[#ff0055] px-2 py-0.5 rounded-md text-[11px] font-bold flex items-center gap-1">
+              <Heart className="w-3 h-3 fill-current" /> Favoris
+            </span>
+          )}
         </div>
-        {(searchTerm || selectedCatalog !== 'all' || selectedGenre !== 'all' || selectedCategory !== 'all' || onlyFavorites) && (
+        {(searchTerm || selectedCatalog !== 'all' || selectedGenre !== 'all' || onlyFavorites) && (
           <button
             onClick={resetFilters}
             className="flex items-center gap-1.5 text-[#ff0055] hover:text-[#ff3377] transition-colors cursor-pointer"
