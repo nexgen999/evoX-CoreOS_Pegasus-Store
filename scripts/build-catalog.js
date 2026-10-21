@@ -50,6 +50,14 @@ const SOURCES = [
     ]
   },
   {
+    id: 'zer0',
+    name: 'zer0 Catalog',
+    isGameCatalog: true,
+    urls: [
+      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/zer0.json'
+    ]
+  },
+  {
     id: 'evox',
     name: 'evoX-CoreOS APPS',
     isGameCatalog: false,
