@@ -147,9 +147,13 @@ export function normalizeItem(
   const links = extractAllLinks(x, title);
   const hasUpdates = links.some(l => l.type === 'Update' || l.type === 'DLC' || l.type === 'Backport');
 
-  // Infer genre/category if not provided
-  let category = x.category || x.region || x.platform || (cleanId.startsWith('PPSA') ? 'PS5' : cleanId.startsWith('CUSA') ? 'PS4' : 'PS5');
-  if (catalogSourceId === 'homebrew' || catalogSourceId === 'evox') {
+  // Infer platform / category (PS5 for PPSA, PS4 for CUSA)
+  let category = cleanId.startsWith('PPSA')
+    ? 'PS5'
+    : cleanId.startsWith('CUSA')
+    ? 'PS4'
+    : (x.platform || x.region || (x.category && x.category !== 'game' && x.category !== 'Games / Apps' ? x.category : 'PS5'));
+  if (catalogSourceId === 'homebrew' || catalogSourceId === 'evox' || x.category === 'homebrew-games' || x.category === 'utilities') {
     category = 'Homebrew';
   }
 
