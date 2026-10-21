@@ -22,7 +22,8 @@ const SOURCES = [
     name: 'BlackBox Catalog',
     isGameCatalog: true,
     urls: [
-      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/blackbox_catalog.json'
+      'https://nexgen999.github.io/evoX-CoreOS/json/pegasus-dl/blackbox_catalog.json',
+      'https://raw.githubusercontent.com/nexgen999/evoX-CoreOS/main/json/pegasus-dl/blackbox_catalog.json'
     ]
   },
   {
@@ -54,7 +55,8 @@ const SOURCES = [
     name: 'zer0 Catalog',
     isGameCatalog: true,
     urls: [
-      'https://github.com/nexgen999/evoX-CoreOS/blob/main/json/pegasus-dl/zer0.json'
+      'https://nexgen999.github.io/evoX-CoreOS/json/pegasus-dl/zer0.json',
+      'https://raw.githubusercontent.com/nexgen999/evoX-CoreOS/main/json/pegasus-dl/zer0.json'
     ]
   },
   {
@@ -67,7 +69,7 @@ const SOURCES = [
   },
   {
     id: 'homebrew',
-    name: 'Homebrew Store',
+    name: 'Prospero Store',
     isGameCatalog: false,
     urls: [
       'https://prosperostore.net/catalog/v1.json'
@@ -214,8 +216,12 @@ function normalizeItem(x, index, catalogId, catalogName) {
   }
 
   const links = extractAllLinks(x, title);
-  let category = x.category || x.region || x.platform || (cleanId.startsWith('PPSA') ? 'PS5' : cleanId.startsWith('CUSA') ? 'PS4' : 'PS5');
-  if (catalogId === 'homebrew' || catalogId === 'evox') {
+  let category = cleanId.startsWith('PPSA')
+    ? 'PS5'
+    : cleanId.startsWith('CUSA')
+    ? 'PS4'
+    : (x.platform || x.region || (x.category && x.category !== 'game' && x.category !== 'Games / Apps' ? x.category : 'PS5'));
+  if (catalogId === 'homebrew' || catalogId === 'evox' || x.category === 'homebrew-games' || x.category === 'utilities') {
     category = 'Homebrew';
   }
 
@@ -336,7 +342,11 @@ async function main() {
   for (const src of SOURCES) {
     console.log(`\nRécupération du catalogue : ${src.name}...`);
     let loaded = null;
-    for (const u of src.urls) {
+    for (const rawUrl of src.urls) {
+      let u = rawUrl;
+      if (u.includes('github.com/') && u.includes('/blob/')) {
+        u = u.replace('github.com/', 'raw.githubusercontent.com/').replace('/blob/', '/');
+      }
       try {
         const res = await fetch(u, { headers: { 'User-Agent': 'evoX-Hub-Store-Build/1.0' } });
         if (res.ok) {
